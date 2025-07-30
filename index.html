@@ -91,10 +91,9 @@
 
                     async init() {
                         // Initialize Firebase
-                        const firebaseConfig = JSON.parse('__FIREBASE_CONFIG_PLACEHOLDER__');
-                        
-                        if (!firebaseConfig.apiKey) {
-                            console.error("Firebase config is missing or invalid!");
+                        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                        if (Object.keys(firebaseConfig).length === 0) {
+                            console.error("Firebase config is missing!");
                             this.productsLoading = false;
                             this.showToast("Could not connect to the store.");
                             return;
