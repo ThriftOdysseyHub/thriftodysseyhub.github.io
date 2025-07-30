@@ -54,7 +54,10 @@
         .toast { position: fixed; top: 20px; right: 20px; background-color: var(--secondary); color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 100; font-weight: 500; }
     </style>
 
-    <!-- Main Application Logic & Alpine.js -->
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <!-- Main Application Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -88,9 +91,10 @@
 
                     async init() {
                         // Initialize Firebase
-                        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                        if (Object.keys(firebaseConfig).length === 0) {
-                            console.error("Firebase config is missing!");
+                        const firebaseConfig = JSON.parse('__FIREBASE_CONFIG_PLACEHOLDER__');
+                        
+                        if (!firebaseConfig.apiKey) {
+                            console.error("Firebase config is missing or invalid!");
                             this.productsLoading = false;
                             this.showToast("Could not connect to the store.");
                             return;
@@ -293,8 +297,6 @@
             });
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-
 </head>
 <body x-data="shop" x-init="init()" :class="{ 'dark': darkMode }">
     <!-- Header & Navigation -->
