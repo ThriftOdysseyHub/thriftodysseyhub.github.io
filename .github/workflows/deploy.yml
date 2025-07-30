@@ -30,13 +30,15 @@ jobs:
           node -e "
             const fs = require('fs');
             const path = 'index.html';
-            const fileContent = fs.readFileSync(path, 'utf8');
+            let fileContent = fs.readFileSync(path, 'utf8');
             const configJson = process.env.FIREBASE_CONFIG;
             if (!configJson) {
               console.error('Firebase config secret is not available!');
               process.exit(1);
             }
-            const result = fileContent.replace('\'__FIREBASE_CONFIG_PLACEHOLDER__\'', configJson);
+            // Ensure the placeholder is correctly quoted for replacement
+            const placeholder = '\'__FIREBASE_CONFIG_PLACEHOLDER__\'';
+            const result = fileContent.replace(placeholder, configJson);
             fs.writeFileSync(path, result, 'utf8');
             console.log('Firebase config injected successfully.');
           "
