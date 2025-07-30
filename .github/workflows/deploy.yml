@@ -1,9 +1,19 @@
 name: Deploy to GitHub Pages
 
 on:
+  # Runs on pushes targeting the main branch
   push:
     branches:
-      - main # Or whatever your main branch is called
+      - main
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Allow this job to clone the repo and create a page deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
@@ -13,8 +23,23 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Replace Firebase Config 🤫
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          sed -i "s|'__FIREBASE_CONFIG_PLACEHOLDER__'|'${{ secrets.FIREBASE_CONFIG }}'|g" index.html
+          # Use Node.js to safely replace the placeholder. This is more reliable than sed for JSON.
+          node -e "
+            const fs = require('fs');
+            const path = 'index.html';
+            const fileContent = fs.readFileSync(path, 'utf8');
+            const configJson = process.env.FIREBASE_CONFIG;
+            if (!configJson) {
+              console.error('Firebase config secret is not available!');
+              process.exit(1);
+            }
+            const result = fileContent.replace('\'__FIREBASE_CONFIG_PLACEHOLDER__\'', configJson);
+            fs.writeFileSync(path, result, 'utf8');
+            console.log('Firebase config injected successfully.');
+          "
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
