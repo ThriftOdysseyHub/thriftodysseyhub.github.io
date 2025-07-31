@@ -53,14 +53,6 @@
         .spinner { border: 4px solid rgba(0, 0, 0, 0.1); border-left-color: var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         .toast { position: fixed; top: 20px; right: 20px; background-color: var(--secondary); color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 100; font-weight: 500; }
     </style>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
-
-    <!-- Alpine.js -->
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body x-data="shop" x-init="init()" :class="{ 'dark': darkMode }">
     <!-- Header & Navigation -->
@@ -68,7 +60,6 @@
         <nav class="container mx-auto px-6 py-5 flex justify-between items-center">
             <a href="#" class="text-3xl font-serif text-slate-800 dark:text-white transition-transform hover:scale-105">ThriftOdysseyHub</a>
             <div class="flex items-center space-x-6">
-                <!-- Links, Theme Toggle, etc. -->
                 <a href="#products" class="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors font-medium tracking-wide">Shop</a>
                 <a href="#about" class="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors font-medium tracking-wide">Our Story</a>
                 <button @click="toggleDarkMode" class="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-all duration-300 hover:rotate-12">
@@ -127,7 +118,7 @@
                 </template>
                 <template x-for="item in cart" :key="item.id">
                     <div class="flex items-center space-x-4">
-                        <img :src="item.image" alt="" class="w-20 h-24 object-cover rounded-md">
+                        <img :src="item.image" :alt="item.name" class="w-20 h-24 object-cover rounded-md">
                         <div class="flex-grow">
                             <h3 class="font-semibold text-slate-700 dark:text-slate-200" x-text="item.name"></h3>
                             <p class="text-sm text-gray-600 dark:text-gray-400" x-text="item.price ? `$${item.price.toFixed(2)}` : ''"></p>
@@ -220,8 +211,14 @@
             <p>&copy; <span x-text="new Date().getFullYear()"></span> ThriftOdysseyHub. All Rights Reserved.</p>
         </div>
     </footer>
+    
+    <!-- Main Application Logic -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('shop', () => {
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -249,12 +246,14 @@
                     unsubscribeCart: () => {},
 
                     async init() {
-                        const { initializeApp } = firebase.app;
-                        const { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } = firebase.auth;
-                        const { getFirestore, collection, getDocs, doc, setDoc, onSnapshot, addDoc } = firebase.firestore;
-
                         // Initialize Firebase
-                        const firebaseConfig = JSON.parse('__FIREBASE_CONFIG_PLACEHOLDER__');
+                        let firebaseConfig = null;
+                        try {
+                            // This will use the globally available config in the development environment.
+                            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                        } catch (e) {
+                            console.error("Firebase config is not valid JSON.", e);
+                        }
                         
                         if (!firebaseConfig || !firebaseConfig.apiKey) {
                             console.error("Firebase config is missing or invalid!");
@@ -311,7 +310,6 @@
                     
                     async fetchProducts() {
                         this.productsLoading = true;
-                        const { collection, getDocs } = firebase.firestore;
                         const productsCol = collection(this.db, `/artifacts/${appId}/public/data/products`);
                         try {
                             const productSnapshot = await getDocs(productsCol);
@@ -332,7 +330,6 @@
                     },
                     
                     async seedProducts() {
-                        const { collection, addDoc } = firebase.firestore;
                         const initialProducts = [
                             { name: 'Vintage Denim Jacket', price: 58.00, image: 'https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80' },
                             { name: 'Canvas Messenger Bag', price: 65.00, image: 'https://images.unsplash.com/photo-1547949003-9792a18a2601?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80' },
@@ -347,7 +344,6 @@
                     
                     async handleSignUp() {
                         this.authError = '';
-                        const { createUserWithEmailAndPassword } = firebase.auth;
                         try {
                             await createUserWithEmailAndPassword(this.auth, this.email, this.password);
                             this.showToast('Account created successfully!');
@@ -359,7 +355,6 @@
 
                     async handleSignIn() {
                         this.authError = '';
-                        const { signInWithEmailAndPassword } = firebase.auth;
                         try {
                             await signInWithEmailAndPassword(this.auth, this.email, this.password);
                             this.showToast('Welcome back!');
@@ -370,14 +365,12 @@
                     },
 
                     async handleSignOut() {
-                        const { signOut } = firebase.auth;
                         await signOut(this.auth);
                         this.showToast('You have been logged out.');
                     },
                     
                     loadUserCart() {
                         if (!this.userId || (this.auth.currentUser && this.auth.currentUser.isAnonymous)) return;
-                        const { doc, onSnapshot } = firebase.firestore;
                         const cartRef = doc(this.db, `/artifacts/${appId}/users/${this.userId}/cart/current`);
                         this.unsubscribeCart = onSnapshot(cartRef, (doc) => {
                             this.cart = doc.exists() ? doc.data().items || [] : [];
@@ -416,7 +409,6 @@
 
                     async saveCart(cartData) {
                         if (this.isLoggedIn) {
-                            const { doc, setDoc } = firebase.firestore;
                             const cartRef = doc(this.db, `/artifacts/${appId}/users/${this.userId}/cart/current`);
                             await setDoc(cartRef, { items: cartData });
                         }
@@ -433,7 +425,6 @@
                             return;
                         }
                         
-                        const { collection, addDoc } = firebase.firestore;
                         const ordersCol = collection(this.db, `/artifacts/${appId}/users/${this.userId}/orders`);
                         try {
                             await addDoc(ordersCol, {
@@ -468,5 +459,7 @@
             });
         });
     </script>
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </body>
 </html>
