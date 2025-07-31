@@ -248,11 +248,7 @@
                     async init() {
                         // Initialize Firebase
                         let firebaseConfig;
-                        try {
-                            // This line is targeted by the GitHub Action for replacement.
-                            // In production, it becomes JSON.parse('{...}').
-                            // In development, it throws an error because the placeholder is not valid JSON.
-                            firebaseConfig = JSON.parse(// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+                        const placeholder = // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBemBYZ5-lOIJ8GsCL9Gjjbb2SXbcKNe3I",
   authDomain: "thriftodysseyhubzb.firebaseapp.com",
@@ -261,17 +257,13 @@ const firebaseConfig = {
   messagingSenderId: "386951188587",
   appId: "1:386951188587:web:38c0b4ca62ebbd54ae612e",
   measurementId: "G-48TNV620Q3"
-};);
-                        } catch (e) {
-                            // The error indicates we are likely in a dev environment.
-                            // Use the injected global variable instead.
-                            if (typeof __firebase_config !== 'undefined') {
-                                try {
-                                    firebaseConfig = JSON.parse(__firebase_config);
-                                } catch (devError) {
-                                     console.error("Could not parse the development __firebase_config variable.", devError);
-                                }
-                            }
+};;
+                        
+                        // This logic handles both the GitHub Actions replacement and local development.
+                        if (placeholder.startsWith('{')) {
+                            firebaseConfig = JSON.parse(placeholder);
+                        } else if (typeof __firebase_config !== 'undefined') {
+                            firebaseConfig = JSON.parse(__firebase_config);
                         }
 
                         if (!firebaseConfig || !firebaseConfig.apiKey) {
@@ -388,12 +380,31 @@ const firebaseConfig = {
                         this.showToast('You have been logged out.');
                     },
                     
-                    loadUserCart() {
-                        if (!this.userId || (this.auth.currentUser && this.auth.currentUser.isAnonymous)) return;
+                    async loadUserCart() {
+                        if (!this.userId || (this.auth.currentUser && this.auth.currentUser.isAnonymous)) {
+                            return;
+                        }
+
+                        if (typeof this.unsubscribeCart === 'function') {
+                            this.unsubscribeCart();
+                        }
+
                         const cartRef = doc(this.db, `/artifacts/${appId}/users/${this.userId}/cart/current`);
-                        this.unsubscribeCart = onSnapshot(cartRef, (doc) => {
-                            this.cart = doc.exists() ? doc.data().items || [] : [];
-                        });
+
+                        try {
+                            await setDoc(cartRef, {}, { merge: true });
+
+                            this.unsubscribeCart = onSnapshot(cartRef, (doc) => {
+                                this.cart = doc.exists() && doc.data().items ? doc.data().items : [];
+                            }, (error) => {
+                                console.error("Error in cart snapshot listener:", error);
+                                this.showToast('Could not sync your cart.');
+                            });
+
+                        } catch (e) {
+                            console.error("Error ensuring user cart exists:", e);
+                            this.showToast('Could not access your cart.');
+                        }
                     },
 
                     async addToCart(product) {
