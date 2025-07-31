@@ -247,14 +247,24 @@
 
                     async init() {
                         // Initialize Firebase
-                        let firebaseConfig = null;
+                        let firebaseConfig;
                         try {
-                            // This will use the globally available config in the development environment.
-                            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                            // This line is targeted by the GitHub Action for replacement.
+                            // In production, it becomes JSON.parse('{...}').
+                            // In development, it throws an error because the placeholder is not valid JSON.
+                            firebaseConfig = JSON.parse('__FIREBASE_CONFIG_PLACEHOLDER__');
                         } catch (e) {
-                            console.error("Firebase config is not valid JSON.", e);
+                            // The error indicates we are likely in a dev environment.
+                            // Use the injected global variable instead.
+                            if (typeof __firebase_config !== 'undefined') {
+                                try {
+                                    firebaseConfig = JSON.parse(__firebase_config);
+                                } catch (devError) {
+                                     console.error("Could not parse the development __firebase_config variable.", devError);
+                                }
+                            }
                         }
-                        
+
                         if (!firebaseConfig || !firebaseConfig.apiKey) {
                             console.error("Firebase config is missing or invalid!");
                             this.productsLoading = false;
